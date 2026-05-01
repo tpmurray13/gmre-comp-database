@@ -101,24 +101,28 @@ export default function BulkSubmit() {
         fileName: string;
       };
 
-      // Pre-fill shared property fields
-      if (property.propertyName) form.setValue("propertyName", property.propertyName);
-      if (property.propertyAddress) form.setValue("propertyAddress", property.propertyAddress);
-      if ((property as any).city) form.setValue("city", (property as any).city);
-      if ((property as any).state) form.setValue("state", (property as any).state);
-      if ((property as any).zipCode) form.setValue("zipCode", (property as any).zipCode);
-      if ((property as any).propertyType) form.setValue("propertyType", (property as any).propertyType);
-      if ((property as any).propertyClass) form.setValue("propertyClass", (property as any).propertyClass);
-      if ((property as any).buildingSize) form.setValue("buildingSize", (property as any).buildingSize);
-      if ((property as any).yearBuilt) form.setValue("yearBuilt", (property as any).yearBuilt);
-      if ((property as any).parkingRatio) form.setValue("parkingRatio", (property as any).parkingRatio);
+      // Build merged values and use form.reset for reliable population of all fields including Selects
+      const current = form.getValues();
+      const p = property as any;
+      const mergedProperty: Partial<BulkFormValues> = {
+        propertyName: p.propertyName || current.propertyName,
+        propertyAddress: p.propertyAddress || current.propertyAddress,
+        city: p.city || current.city,
+        state: p.state || current.state,
+        zipCode: p.zipCode || current.zipCode,
+        propertyType: p.propertyType || current.propertyType,
+        propertyClass: p.propertyClass || current.propertyClass,
+        buildingSize: p.buildingSize ?? current.buildingSize,
+        yearBuilt: p.yearBuilt ?? current.yearBuilt,
+        parkingRatio: p.parkingRatio ?? current.parkingRatio,
+      };
 
-      // Replace comp rows with extracted leases
+      let rows: CompRow[] = current.comps;
       if (leases && leases.length > 0) {
-        const rows: CompRow[] = leases.map(l => ({
+        rows = leases.map((l: any) => ({
           ...EMPTY_ROW,
           tenantName: l.tenantName || "",
-          landlordName: (l as any).landlordName || "",
+          landlordName: l.landlordName || "",
           suiteNumber: l.suiteNumber || "",
           leasedSF: l.leasedSF ?? ("" as unknown as number),
           leaseType: l.leaseType || "",
@@ -133,10 +137,10 @@ export default function BulkSubmit() {
           escalationRate: l.escalationRate ?? "",
           notes: l.notes || "",
         }));
-        form.setValue("comps", rows);
-        // Expand all rows so user can review
-        setExpandedRows(new Set(rows.map((_, i) => i)));
+        setExpandedRows(new Set(rows.map((_: any, i: number) => i)));
       }
+
+      form.reset({ ...current, ...mergedProperty, submittedBy: current.submittedBy, comps: rows });
 
       setExtractedFileName(file.name);
       toast({

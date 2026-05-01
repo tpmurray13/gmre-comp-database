@@ -121,11 +121,16 @@ export default function SubmitComp() {
         sourceDocument: json.fileName,
       };
 
+      // Use reset to set all extracted values at once — most reliable way to
+      // populate both text inputs AND controlled Select components in RHF
+      const current = form.getValues();
+      const merged: FormValues = { ...current };
       Object.entries(fieldMap).forEach(([key, value]) => {
         if (value != null && value !== "") {
-          form.setValue(key as keyof FormValues, value as string, { shouldValidate: false });
+          (merged as Record<string, unknown>)[key] = value;
         }
       });
+      form.reset(merged);
 
       toast({
         title: "Document parsed",
