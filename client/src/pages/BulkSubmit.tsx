@@ -20,6 +20,9 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// API_BASE is replaced at deploy time to proxy through Railway
+const API_BASE = ("__PORT_5000__" as string).startsWith("__") ? "" : "__PORT_5000__";
+
 // Single comp schema for bulk rows (no submitPassword per row)
 const bulkCompRowSchema = z.object({
   tenantName: z.string().min(1, "Required"),
@@ -91,7 +94,7 @@ export default function BulkSubmit() {
     try {
       const formData = new FormData();
       formData.append("document", file);
-      const res = await fetch("/api/extract-bulk", { method: "POST", body: formData });
+      const res = await fetch(`${API_BASE}/api/extract-bulk`, { method: "POST", body: formData });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Extraction failed");
 

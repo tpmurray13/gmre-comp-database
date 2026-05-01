@@ -16,6 +16,9 @@ import { insertLeaseCompSchema, PROPERTY_TYPES, PROPERTY_CLASSES, LEASE_TYPES } 
 import { z } from "zod";
 import { Loader2, Sparkles, CheckCircle2, FileText, AlertCircle, User } from "lucide-react";
 
+// API_BASE is replaced at deploy time by deploy_website to proxy through Railway
+const API_BASE = ("__PORT_5000__" as string).startsWith("__") ? "" : "__PORT_5000__";
+
 const formSchema = insertLeaseCompSchema.extend({
   baseRent: z.coerce.number().positive("Enter a valid rent"),
   leasedSF: z.coerce.number().positive("Enter a valid SF"),
@@ -81,7 +84,7 @@ export default function SubmitComp() {
     formData.append("document", file);
 
     try {
-      const res = await fetch("/api/extract", { method: "POST", body: formData });
+      const res = await fetch(`${API_BASE}/api/extract`, { method: "POST", body: formData });
       const json = await res.json();
       if (!res.ok) {
         if (json.isImagePdf) {

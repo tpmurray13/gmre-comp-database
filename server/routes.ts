@@ -190,7 +190,7 @@ export async function registerRoutes(
   "tenantName": string,
   "landlordName": string or null,
   "leasedSF": number (SF of this lease),
-  "leaseType": one of ["NNN","Full Service","Modified Gross","Gross","Absolute Net"] or null,
+  "leaseType": one of ["N","NN","NNN","Full Service","Modified Gross","Gross","Absolute Net"] or null,
   "baseRent": number (annual $/SF) or null,
   "effectiveRent": number (annual $/SF after concessions) or null,
   "leaseTermMonths": number or null,
