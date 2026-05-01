@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -16,7 +16,7 @@ import { PROPERTY_TYPES, PROPERTY_CLASSES, LEASE_TYPES } from "@shared/schema";
 import { z } from "zod";
 import {
   PlusCircle, Trash2, Loader2, ChevronDown, ChevronUp,
-  CheckCircle2, AlertCircle, Copy, Layers
+  CheckCircle2, AlertCircle, Copy, Layers, Sparkles, FileText
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -77,6 +77,79 @@ export default function BulkSubmit() {
   const queryClient = useQueryClient();
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set([0]));
   const [submitResult, setSubmitResult] = useState<SubmitResult | null>(null);
+
+  // AI bulk extraction state
+  const bulkFileRef = useRef<HTMLInputElement>(null);
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [extractError, setExtractError] = useState<string | null>(null);
+  const [extractedFileName, setExtractedFileName] = useState<string | null>(null);
+
+  async function handleBulkExtract(file: File) {
+    setIsExtracting(true);
+    setExtractError(null);
+    setExtractedFileName(null);
+    try {
+      const formData = new FormData();
+      formData.append("document", file);
+      const res = await fetch("/api/extract-bulk", { method: "POST", body: formData });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Extraction failed");
+
+      const { property, leases } = json as {
+        property: Partial<BulkFormValues>;
+        leases: Partial<CompRow>[];
+        fileName: string;
+      };
+
+      // Pre-fill shared property fields
+      if (property.propertyName) form.setValue("propertyName", property.propertyName);
+      if (property.propertyAddress) form.setValue("propertyAddress", property.propertyAddress);
+      if ((property as any).city) form.setValue("city", (property as any).city);
+      if ((property as any).state) form.setValue("state", (property as any).state);
+      if ((property as any).zipCode) form.setValue("zipCode", (property as any).zipCode);
+      if ((property as any).propertyType) form.setValue("propertyType", (property as any).propertyType);
+      if ((property as any).propertyClass) form.setValue("propertyClass", (property as any).propertyClass);
+      if ((property as any).buildingSize) form.setValue("buildingSize", (property as any).buildingSize);
+      if ((property as any).yearBuilt) form.setValue("yearBuilt", (property as any).yearBuilt);
+      if ((property as any).parkingRatio) form.setValue("parkingRatio", (property as any).parkingRatio);
+
+      // Replace comp rows with extracted leases
+      if (leases && leases.length > 0) {
+        const rows: CompRow[] = leases.map(l => ({
+          ...EMPTY_ROW,
+          tenantName: l.tenantName || "",
+          landlordName: (l as any).landlordName || "",
+          suiteNumber: l.suiteNumber || "",
+          leasedSF: l.leasedSF ?? ("" as unknown as number),
+          leaseType: l.leaseType || "",
+          baseRent: l.baseRent ?? ("" as unknown as number),
+          effectiveRent: l.effectiveRent ?? "",
+          leaseTermMonths: l.leaseTermMonths ?? ("" as unknown as number),
+          leaseStartDate: l.leaseStartDate || "",
+          leaseEndDate: l.leaseEndDate || "",
+          tiAllowance: l.tiAllowance ?? "",
+          freeRentMonths: l.freeRentMonths ?? "",
+          landlordWork: l.landlordWork || "",
+          escalationRate: l.escalationRate ?? "",
+          notes: l.notes || "",
+        }));
+        form.setValue("comps", rows);
+        // Expand all rows so user can review
+        setExpandedRows(new Set(rows.map((_, i) => i)));
+      }
+
+      setExtractedFileName(file.name);
+      toast({
+        title: `Extracted ${leases?.length ?? 0} lease${leases?.length !== 1 ? "s" : ""} from document`,
+        description: "Review all fields below before submitting.",
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      setExtractError(msg);
+    } finally {
+      setIsExtracting(false);
+    }
+  }
 
   const form = useForm<BulkFormValues>({
     resolver: zodResolver(bulkFormSchema),
@@ -164,6 +237,67 @@ export default function BulkSubmit() {
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+
+            {/* AI Rent Roll Upload */}
+            <Card className="border-primary/30 bg-primary/5">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-display flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  AI Rent Roll Extraction
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Upload a property brochure, rent roll, or offering memorandum — AI will extract all tenants and pre-fill every field automatically.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <input
+                  ref={bulkFileRef}
+                  type="file"
+                  accept=".pdf,.doc,.docx,.txt"
+                  className="hidden"
+                  onChange={e => { const f = e.target.files?.[0]; if (f) handleBulkExtract(f); }}
+                />
+                <div
+                  className="border-2 border-dashed border-primary/30 rounded-lg p-6 text-center cursor-pointer hover:border-primary/60 hover:bg-primary/5 transition-all"
+                  onClick={() => !isExtracting && bulkFileRef.current?.click()}
+                  onDragOver={e => { e.preventDefault(); e.stopPropagation(); e.currentTarget.classList.add("border-primary", "bg-primary/10"); }}
+                  onDragLeave={e => { e.preventDefault(); e.currentTarget.classList.remove("border-primary", "bg-primary/10"); }}
+                  onDrop={e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.currentTarget.classList.remove("border-primary", "bg-primary/10");
+                    const f = e.dataTransfer.files?.[0];
+                    if (f) handleBulkExtract(f);
+                  }}
+                >
+                  {isExtracting ? (
+                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                      <span className="text-sm font-medium">Extracting all leases from document...</span>
+                      <span className="text-xs">This may take a few seconds</span>
+                    </div>
+                  ) : extractedFileName ? (
+                    <div className="flex flex-col items-center gap-2 text-green-600 dark:text-green-400">
+                      <CheckCircle2 className="h-8 w-8" />
+                      <span className="text-sm font-medium">Extracted from "{extractedFileName}"</span>
+                      <span className="text-xs text-muted-foreground">Click or drop a new file to re-extract</span>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                      <FileText className="h-8 w-8 text-primary/50" />
+                      <span className="text-sm font-medium">Drop a rent roll or brochure here, or click to browse</span>
+                      <span className="text-xs">PDF, DOC, DOCX, TXT · up to 20MB</span>
+                    </div>
+                  )}
+                </div>
+                {extractError && (
+                  <div className="flex items-start gap-2 mt-3 text-sm text-destructive">
+                    <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                    {extractError}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
             {/* Submitted by */}
             <Card>
