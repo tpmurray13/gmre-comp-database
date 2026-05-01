@@ -82,7 +82,12 @@ export default function SubmitComp() {
     try {
       const res = await fetch("/api/extract", { method: "POST", body: formData });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Extraction failed");
+      if (!res.ok) {
+        if (json.isImagePdf) {
+          throw new Error("This PDF is a scanned image — text can't be read from it. Try a digitally-created PDF (e.g. exported from Word or a digital lease system), or enter the details manually.");
+        }
+        throw new Error(json.error || "Extraction failed");
+      }
 
       const ex = json.extracted;
       setExtractedFileName(json.fileName);

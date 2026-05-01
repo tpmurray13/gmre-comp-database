@@ -138,19 +138,41 @@ export async function registerRoutes(
       let fileText = "";
       const ext = path.extname(req.file.originalname).toLowerCase();
 
+      let isImagePdf = false;
       if (ext === ".txt") {
-        fileText = fs.readFileSync(req.file.path, "utf-8").slice(0, 8000);
+        fileText = fs.readFileSync(req.file.path, "utf-8").slice(0, 16000);
       } else if (ext === ".pdf") {
         try {
           const pdfParse = (await import("pdf-parse")).default;
           const buf = fs.readFileSync(req.file.path);
           const data = await pdfParse(buf);
-          fileText = data.text.slice(0, 8000);
+          fileText = data.text.slice(0, 16000);
+          // Scanned/image PDFs extract very little text
+          if (fileText.replace(/\s/g, "").length < 100) {
+            isImagePdf = true;
+            fileText = `[This appears to be a scanned/image-based PDF. Limited text was extractable: ${fileText.trim()}]`;
+          }
         } catch {
-          fileText = `[PDF file: ${req.file.originalname} - text extraction unavailable, please fill fields manually]`;
+          fileText = `[PDF file: ${req.file.originalname} - text extraction unavailable]`;
+        }
+      } else if (['.doc','.docx'].includes(ext)) {
+        // For doc/docx, try reading as text
+        try {
+          fileText = fs.readFileSync(req.file.path, "utf-8").slice(0, 16000);
+        } catch {
+          fileText = `[File: ${req.file.originalname}]`;
         }
       } else {
         fileText = `[File: ${req.file.originalname} - binary file, text not extractable]`;
+      }
+
+      // If scanned PDF, return early with helpful error
+      if (isImagePdf) {
+        fs.unlinkSync(req.file.path);
+        return res.status(422).json({
+          error: "This PDF appears to be a scanned image and couldn't be read as text. Please try a text-based PDF, or type the lease details manually.",
+          isImagePdf: true,
+        });
       }
 
       const prompt = `You are a commercial real estate data extraction assistant. Extract lease and property information from the following document text and return ONLY a JSON object with these exact keys (use null for any field not found):
@@ -227,8 +249,21 @@ ${fileText}`;
           const buf = fs.readFileSync(req.file.path);
           const data = await pdfParse(buf);
           fileText = data.text.slice(0, 24000);
+          if (fileText.replace(/\s/g, "").length < 100) {
+            fs.unlinkSync(req.file.path);
+            return res.status(422).json({
+              error: "This PDF appears to be a scanned image and couldn't be read as text. Please try a text-based PDF.",
+              isImagePdf: true,
+            });
+          }
         } catch {
           fileText = `[PDF: ${req.file.originalname} - text extraction failed]`;
+        }
+      } else if (['.doc','.docx'].includes(ext)) {
+        try {
+          fileText = fs.readFileSync(req.file.path, "utf-8").slice(0, 24000);
+        } catch {
+          fileText = `[File: ${req.file.originalname}]`;
         }
       } else {
         fileText = `[File: ${req.file.originalname}]`;
