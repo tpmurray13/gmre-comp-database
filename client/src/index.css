@@ -1,0 +1,177 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* GMRE Brand Palette — Navy/Slate professional CRE */
+    --background: 214 32% 97%;
+    --foreground: 215 40% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 215 40% 12%;
+    --card-border: hsl(214 15% 88%);
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 40% 12%;
+    --popover-border: hsl(214 15% 88%);
+
+    /* Navy primary */
+    --primary: 215 60% 22%;
+    --primary-foreground: 0 0% 100%;
+    --primary-border: hsl(215 55% 30%);
+
+    --secondary: 214 20% 93%;
+    --secondary-foreground: 215 40% 20%;
+    --secondary-border: hsl(214 15% 85%);
+
+    --muted: 214 18% 93%;
+    --muted-foreground: 215 15% 50%;
+    --muted-border: hsl(214 15% 86%);
+
+    --accent: 35 85% 52%;
+    --accent-foreground: 215 40% 12%;
+    --accent-border: hsl(35 80% 45%);
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --destructive-border: hsl(0 65% 45%);
+
+    --border: 214 15% 86%;
+    --input: 214 15% 86%;
+    --ring: 215 60% 22%;
+
+    /* Chart colors */
+    --chart-1: 215 60% 35%;
+    --chart-2: 35 85% 52%;
+    --chart-3: 160 55% 38%;
+    --chart-4: 280 55% 45%;
+    --chart-5: 10 72% 50%;
+
+    /* Sidebar */
+    --sidebar: 215 45% 18%;
+    --sidebar-foreground: 214 20% 88%;
+    --sidebar-border: 215 35% 25%;
+    --sidebar-ring: 214 55% 55%;
+    --sidebar-primary: 214 55% 55%;
+    --sidebar-primary-foreground: 215 40% 10%;
+    --sidebar-accent: 215 35% 25%;
+    --sidebar-accent-foreground: 214 20% 85%;
+
+    --radius: 0.5rem;
+
+    /* Custom brand tokens */
+    --color-navy: #1a3a5c;
+    --color-navy-dark: #0f2540;
+    --color-gold: #d4891a;
+    --color-gold-light: #f5b942;
+    --color-slate: #5a7a9a;
+
+    /* Fonts */
+    --font-sans: 'Cabinet Grotesk', 'DM Sans', system-ui, sans-serif;
+    --font-serif: 'DM Serif Display', Georgia, serif;
+    --font-mono: 'Geist Mono', 'Fira Code', monospace;
+    --font-display: var(--font-sans);
+    --font-body: var(--font-sans);
+  }
+
+  .dark {
+    --background: 215 35% 8%;
+    --foreground: 214 20% 88%;
+
+    --card: 215 30% 11%;
+    --card-foreground: 214 20% 88%;
+    --card-border: hsl(215 22% 20%);
+
+    --popover: 215 30% 11%;
+    --popover-foreground: 214 20% 88%;
+    --popover-border: hsl(215 22% 20%);
+
+    --primary: 214 55% 55%;
+    --primary-foreground: 215 40% 8%;
+    --primary-border: hsl(214 50% 50%);
+
+    --secondary: 215 25% 18%;
+    --secondary-foreground: 214 20% 75%;
+    --secondary-border: hsl(215 22% 24%);
+
+    --muted: 215 22% 16%;
+    --muted-foreground: 214 12% 55%;
+    --muted-border: hsl(215 20% 22%);
+
+    --accent: 35 80% 58%;
+    --accent-foreground: 215 40% 8%;
+    --accent-border: hsl(35 75% 52%);
+
+    --destructive: 0 65% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --destructive-border: hsl(0 60% 48%);
+
+    --border: 215 20% 22%;
+    --input: 215 20% 22%;
+    --ring: 214 55% 55%;
+
+    --chart-1: 214 55% 60%;
+    --chart-2: 35 80% 60%;
+    --chart-3: 160 50% 50%;
+    --chart-4: 280 50% 58%;
+    --chart-5: 10 65% 60%;
+
+    --sidebar: 215 38% 12%;
+    --sidebar-foreground: 214 20% 85%;
+    --sidebar-border: 215 28% 20%;
+    --sidebar-ring: 214 55% 55%;
+    --sidebar-primary: 214 55% 55%;
+    --sidebar-primary-foreground: 215 35% 10%;
+    --sidebar-accent: 215 28% 20%;
+    --sidebar-accent-foreground: 214 18% 82%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    scroll-behavior: smooth;
+    scroll-padding-top: 4rem;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    font-size: clamp(0.9375rem, 0.9rem + 0.2vw, 1rem);
+    line-height: 1.6;
+    min-height: 100dvh;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    line-height: 1.2;
+    text-wrap: balance;
+  }
+
+  p, li {
+    text-wrap: pretty;
+  }
+}
+
+@layer utilities {
+  /* Property type badge colors */
+  .badge-office     { @apply bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300; }
+  .badge-retail     { @apply bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300; }
+  .badge-industrial { @apply bg-orange-100 text-orange-800 dark:bg-orange-950/60 dark:text-orange-300; }
+  .badge-medical    { @apply bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300; }
+  .badge-flex       { @apply bg-purple-100 text-purple-800 dark:bg-purple-950/60 dark:text-purple-300; }
+  .badge-mixed      { @apply bg-teal-100 text-teal-800 dark:bg-teal-950/60 dark:text-teal-300; }
+  .badge-land       { @apply bg-yellow-100 text-yellow-800 dark:bg-yellow-950/60 dark:text-yellow-300; }
+
+  /* Class badge colors */
+  .badge-class-a    { @apply bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300; }
+  .badge-class-b    { @apply bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300; }
+  .badge-class-c    { @apply bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300; }
+}
