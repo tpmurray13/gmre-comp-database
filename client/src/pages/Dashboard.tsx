@@ -29,6 +29,17 @@ const TYPE_COLORS: Record<string, string> = {
   "Land": "badge-land",
 };
 
+// Colorful bubble palette per property type
+const BUBBLE_STYLES: Record<string, { bg: string; border: string; text: string; accent: string }> = {
+  "Office":            { bg: "bg-blue-50 dark:bg-blue-950/40",    border: "border-blue-200 dark:border-blue-800",    text: "text-blue-800 dark:text-blue-200",    accent: "text-blue-600 dark:text-blue-300" },
+  "Retail":            { bg: "bg-rose-50 dark:bg-rose-950/40",     border: "border-rose-200 dark:border-rose-800",     text: "text-rose-800 dark:text-rose-200",     accent: "text-rose-600 dark:text-rose-300" },
+  "Industrial":        { bg: "bg-amber-50 dark:bg-amber-950/40",   border: "border-amber-200 dark:border-amber-800",   text: "text-amber-800 dark:text-amber-200",   accent: "text-amber-600 dark:text-amber-300" },
+  "Medical/Healthcare":{ bg: "bg-emerald-50 dark:bg-emerald-950/40",border: "border-emerald-200 dark:border-emerald-800",text: "text-emerald-800 dark:text-emerald-200",accent: "text-emerald-600 dark:text-emerald-300" },
+  "Flex":              { bg: "bg-violet-50 dark:bg-violet-950/40", border: "border-violet-200 dark:border-violet-800", text: "text-violet-800 dark:text-violet-200", accent: "text-violet-600 dark:text-violet-300" },
+  "Mixed-Use":         { bg: "bg-orange-50 dark:bg-orange-950/40", border: "border-orange-200 dark:border-orange-800", text: "text-orange-800 dark:text-orange-200", accent: "text-orange-600 dark:text-orange-300" },
+  "Land":              { bg: "bg-teal-50 dark:bg-teal-950/40",     border: "border-teal-200 dark:border-teal-800",     text: "text-teal-800 dark:text-teal-200",     accent: "text-teal-600 dark:text-teal-300" },
+};
+
 const CLASS_COLORS: Record<string, string> = {
   "Class A": "badge-class-a",
   "Class B": "badge-class-b",
@@ -122,6 +133,19 @@ export default function Dashboard() {
     return counts;
   }, [comps]);
 
+  // TTM avg rent per property type (trailing 12 months by submittedAt)
+  const ttmStats = useMemo(() => {
+    const cutoff = new Date();
+    cutoff.setFullYear(cutoff.getFullYear() - 1);
+    const ttmComps = comps.filter(c => c.submittedAt && new Date(c.submittedAt) >= cutoff);
+    return PROPERTY_TYPES.map(type => {
+      const typeComps = ttmComps.filter(c => c.propertyType === type && c.baseRent != null);
+      if (!typeComps.length) return { type, avgRent: null, count: 0 };
+      const avgRent = typeComps.reduce((sum, c) => sum + c.baseRent!, 0) / typeComps.length;
+      return { type, avgRent, count: typeComps.length };
+    }).filter(s => s.count > 0);
+  }, [comps]);
+
   function toggleSort(key: SortKey) {
     if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc");
     else { setSortKey(key); setSortDir("asc"); }
@@ -165,6 +189,33 @@ export default function Dashboard() {
             Export CSV
           </Button>
         </div>
+
+        {/* TTM Avg Rent Bubbles */}
+        {ttmStats.length > 0 && (
+          <div>
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+              <TrendingUp className="h-3 w-3" />
+              Trailing 12-Month Avg. Rent by Property Type
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {ttmStats.map(({ type, avgRent, count }) => {
+                const s = BUBBLE_STYLES[type] ?? { bg: "bg-muted", border: "border-border", text: "text-foreground", accent: "text-muted-foreground" };
+                return (
+                  <div
+                    key={type}
+                    className={`rounded-2xl border px-4 py-2.5 flex flex-col items-center min-w-[110px] ${s.bg} ${s.border}`}
+                  >
+                    <span className={`text-[10px] font-bold uppercase tracking-wide ${s.text}`}>{type}</span>
+                    <span className={`text-lg font-extrabold tabular-nums leading-tight mt-0.5 ${s.accent}`}>
+                      {avgRent != null ? `$${avgRent.toFixed(2)}` : "—"}
+                    </span>
+                    <span className={`text-[9px] mt-0.5 ${s.text} opacity-70`}>/SF/yr · {count} deal{count !== 1 ? "s" : ""}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Property type tabs */}
         <div className="flex flex-wrap gap-2" role="tablist" aria-label="Filter by property type">
