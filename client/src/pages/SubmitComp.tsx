@@ -199,6 +199,15 @@ export default function SubmitComp() {
                 <div
                   className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-all"
                   onClick={() => fileInputRef.current?.click()}
+                  onDragOver={e => { e.preventDefault(); e.stopPropagation(); e.currentTarget.classList.add("border-primary", "bg-muted/30"); }}
+                  onDragLeave={e => { e.preventDefault(); e.currentTarget.classList.remove("border-primary", "bg-muted/30"); }}
+                  onDrop={e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.currentTarget.classList.remove("border-primary", "bg-muted/30");
+                    const file = e.dataTransfer.files?.[0];
+                    if (file) handleExtract(file);
+                  }}
                   data-testid="dropzone-upload"
                 >
                   {isExtracting ? (

@@ -52,4 +52,4 @@ export type LeaseComp = typeof leaseComps.$inferSelect;
 // Enums for dropdowns
 export const PROPERTY_TYPES = ["Office", "Retail", "Industrial", "Medical/Healthcare", "Flex", "Mixed-Use", "Land"] as const;
 export const PROPERTY_CLASSES = ["Class A", "Class B", "Class C"] as const;
-export const LEASE_TYPES = ["NNN", "Full Service", "Modified Gross", "Gross", "Absolute Net"] as const;
+export const LEASE_TYPES = ["N", "NN", "NNN", "Full Service", "Modified Gross", "Gross", "Absolute Net"] as const;
