@@ -33,6 +33,28 @@ export async function registerRoutes(
     }
   });
 
+  // GET comps with search filters: ?propertyType=Office&minSF=1000&maxSF=5000
+  app.get("/api/comps/search", async (req: Request, res: Response) => {
+    try {
+      const { propertyType, minSF, maxSF } = req.query as Record<string, string>;
+      let comps = await storage.getAllComps();
+      if (propertyType && propertyType !== "All") {
+        comps = comps.filter(c => c.propertyType === propertyType);
+      }
+      if (minSF) {
+        const min = parseFloat(minSF);
+        if (!isNaN(min)) comps = comps.filter(c => c.leasedSF != null && c.leasedSF >= min);
+      }
+      if (maxSF) {
+        const max = parseFloat(maxSF);
+        if (!isNaN(max)) comps = comps.filter(c => c.leasedSF != null && c.leasedSF <= max);
+      }
+      res.json(comps);
+    } catch {
+      res.status(500).json({ error: "Failed to search comps" });
+    }
+  });
+
   // GET single comp
   app.get("/api/comps/:id", async (req: Request, res: Response) => {
     try {

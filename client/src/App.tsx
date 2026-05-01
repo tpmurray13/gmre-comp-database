@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import Dashboard from "@/pages/Dashboard";
 import SubmitComp from "@/pages/SubmitComp";
 import BulkSubmit from "@/pages/BulkSubmit";
+import CompReport from "@/pages/CompReport";
 import NotFound from "@/pages/not-found";
 
 function AppRouter() {
@@ -16,6 +17,7 @@ function AppRouter() {
       <Route path="/" component={Dashboard} />
       <Route path="/submit" component={SubmitComp} />
       <Route path="/bulk" component={BulkSubmit} />
+      <Route path="/report" component={CompReport} />
       <Route component={NotFound} />
     </Switch>
   );
