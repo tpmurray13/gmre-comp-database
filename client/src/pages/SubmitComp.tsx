@@ -11,14 +11,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { insertLeaseCompSchema, PROPERTY_TYPES, PROPERTY_CLASSES, LEASE_TYPES } from "@shared/schema";
 import { z } from "zod";
-import { Upload, Loader2, Sparkles, CheckCircle2, Lock, FileText, AlertCircle } from "lucide-react";
+import { Loader2, Sparkles, CheckCircle2, FileText, AlertCircle, User } from "lucide-react";
 
 const formSchema = insertLeaseCompSchema.extend({
-  submitPassword: z.string().min(1, "Password is required to submit"),
   baseRent: z.coerce.number().positive("Enter a valid rent"),
   leasedSF: z.coerce.number().positive("Enter a valid SF"),
   leaseTermMonths: z.coerce.number().int().positive("Enter a valid term"),
@@ -43,9 +41,6 @@ export default function SubmitComp() {
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractedFileName, setExtractedFileName] = useState<string | null>(null);
   const [extractError, setExtractError] = useState<string | null>(null);
-  const [passwordVerified, setPasswordVerified] = useState(false);
-  const [passwordInput, setPasswordInput] = useState("");
-  const [passwordError, setPasswordError] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -54,7 +49,6 @@ export default function SubmitComp() {
       propertyType: "", propertyClass: "", tenantName: "", landlordName: "", suiteNumber: "",
       leaseType: "", leaseStartDate: "", leaseEndDate: "", landlordWork: "", notes: "",
       submittedBy: "", floorLevel: "", sourceDocument: "",
-      submitPassword: "",
     },
   });
 
@@ -78,18 +72,12 @@ export default function SubmitComp() {
   });
 
   async function handleExtract(file: File) {
-    const pw = form.getValues("submitPassword");
-    if (!pw) {
-      toast({ title: "Enter your password first", description: "The submission password is needed to use AI extraction.", variant: "destructive" });
-      return;
-    }
     setIsExtracting(true);
     setExtractError(null);
     setExtractedFileName(null);
 
     const formData = new FormData();
     formData.append("document", file);
-    formData.append("submitPassword", pw);
 
     try {
       const res = await fetch("/api/extract", { method: "POST", body: formData });
@@ -99,7 +87,6 @@ export default function SubmitComp() {
       const ex = json.extracted;
       setExtractedFileName(json.fileName);
 
-      // Map extracted fields into the form
       const fieldMap: Partial<Record<keyof FormValues, unknown>> = {
         propertyName: ex.propertyName,
         propertyAddress: ex.propertyAddress,
@@ -152,50 +139,31 @@ export default function SubmitComp() {
     submitMutation.mutate(data);
   }
 
-  // Password gate UI
-  const pw = form.watch("submitPassword");
-
   return (
     <Layout>
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-6">
 
-        {/* Header */}
         <div>
           <h1 className="text-xl font-bold font-display">Submit a Lease Comp</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Upload a document for AI extraction, or fill in the fields manually. All comps are visible to the team.
+            Upload a document for AI extraction, or fill in the fields manually.
           </p>
         </div>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
 
-            {/* Step 1 — Password */}
+            {/* Agent name */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm flex items-center gap-2 font-display">
-                  <Lock className="h-4 w-4 text-primary" />
-                  Agent Access
+                  <User className="h-4 w-4 text-primary" />
+                  Submitted By
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <FormField control={form.control} name="submitPassword" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Submission Password</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="password"
-                        placeholder="Enter the team password"
-                        data-testid="input-submit-password"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormDescription>Required to submit or use AI extraction. Ask your broker-in-charge.</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )} />
                 <FormField control={form.control} name="submittedBy" render={({ field }) => (
-                  <FormItem className="mt-4">
+                  <FormItem>
                     <FormLabel>Your Name (optional)</FormLabel>
                     <FormControl>
                       <Input placeholder="Agent name" data-testid="input-submitted-by" {...field} />
@@ -206,7 +174,7 @@ export default function SubmitComp() {
               </CardContent>
             </Card>
 
-            {/* Step 2 — AI Document Upload */}
+            {/* AI Document Upload */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm flex items-center gap-2 font-display">
@@ -261,7 +229,7 @@ export default function SubmitComp() {
               </CardContent>
             </Card>
 
-            {/* Section: Property */}
+            {/* Property Info */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-display">Property Information</CardTitle>
@@ -314,9 +282,7 @@ export default function SubmitComp() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {PROPERTY_TYPES.map(t => (
-                          <SelectItem key={t} value={t}>{t}</SelectItem>
-                        ))}
+                        {PROPERTY_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -332,9 +298,7 @@ export default function SubmitComp() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {PROPERTY_CLASSES.map(c => (
-                          <SelectItem key={c} value={c}>{c}</SelectItem>
-                        ))}
+                        {PROPERTY_CLASSES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -343,35 +307,35 @@ export default function SubmitComp() {
                 <FormField control={form.control} name="buildingSize" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Total Building SF</FormLabel>
-                    <FormControl><Input type="number" placeholder="e.g. 50000" data-testid="input-building-size" {...field} /></FormControl>
+                    <FormControl><Input type="number" placeholder="e.g. 50000" {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
                 <FormField control={form.control} name="yearBuilt" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Year Built</FormLabel>
-                    <FormControl><Input type="number" placeholder="e.g. 2002" data-testid="input-year-built" {...field} /></FormControl>
+                    <FormControl><Input type="number" placeholder="e.g. 2002" {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
                 <FormField control={form.control} name="suiteNumber" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Suite / Unit #</FormLabel>
-                    <FormControl><Input placeholder="Suite 200" data-testid="input-suite" {...field} /></FormControl>
+                    <FormControl><Input placeholder="Suite 200" {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
                 <FormField control={form.control} name="parkingRatio" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Parking Ratio (per 1,000 SF)</FormLabel>
-                    <FormControl><Input type="number" step="0.1" placeholder="e.g. 4.0" data-testid="input-parking" {...field} /></FormControl>
+                    <FormControl><Input type="number" step="0.1" placeholder="e.g. 4.0" {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
               </CardContent>
             </Card>
 
-            {/* Section: Lease Details */}
+            {/* Lease Details */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-display">Lease Details</CardTitle>
@@ -387,7 +351,7 @@ export default function SubmitComp() {
                 <FormField control={form.control} name="landlordName" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Landlord / Owner</FormLabel>
-                    <FormControl><Input placeholder="e.g. Highwoods Properties" data-testid="input-landlord" {...field} /></FormControl>
+                    <FormControl><Input placeholder="e.g. Highwoods Properties" {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
@@ -403,14 +367,10 @@ export default function SubmitComp() {
                     <FormLabel>Lease Structure</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value ?? ""}>
                       <FormControl>
-                        <SelectTrigger data-testid="select-lease-type">
-                          <SelectValue placeholder="Select structure" />
-                        </SelectTrigger>
+                        <SelectTrigger><SelectValue placeholder="Select structure" /></SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {LEASE_TYPES.map(t => (
-                          <SelectItem key={t} value={t}>{t}</SelectItem>
-                        ))}
+                        {LEASE_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -426,7 +386,7 @@ export default function SubmitComp() {
                 <FormField control={form.control} name="effectiveRent" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Effective Rent ($/SF/yr)</FormLabel>
-                    <FormControl><Input type="number" step="0.01" placeholder="after concessions" data-testid="input-effective-rent" {...field} /></FormControl>
+                    <FormControl><Input type="number" step="0.01" placeholder="after concessions" {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
@@ -440,7 +400,7 @@ export default function SubmitComp() {
                 <FormField control={form.control} name="escalationRate" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Annual Escalation (%)</FormLabel>
-                    <FormControl><Input type="number" step="0.1" placeholder="e.g. 3.0" data-testid="input-escalation" {...field} /></FormControl>
+                    <FormControl><Input type="number" step="0.1" placeholder="e.g. 3.0" {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
@@ -461,7 +421,7 @@ export default function SubmitComp() {
               </CardContent>
             </Card>
 
-            {/* Section: Concessions */}
+            {/* Concessions */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-display">Concessions & Landlord Work</CardTitle>
@@ -470,14 +430,14 @@ export default function SubmitComp() {
                 <FormField control={form.control} name="tiAllowance" render={({ field }) => (
                   <FormItem>
                     <FormLabel>TI Allowance ($/SF)</FormLabel>
-                    <FormControl><Input type="number" step="0.01" placeholder="e.g. 25.00" data-testid="input-ti" {...field} /></FormControl>
+                    <FormControl><Input type="number" step="0.01" placeholder="e.g. 25.00" {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
                 <FormField control={form.control} name="freeRentMonths" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Free Rent (months)</FormLabel>
-                    <FormControl><Input type="number" placeholder="e.g. 3" data-testid="input-free-rent" {...field} /></FormControl>
+                    <FormControl><Input type="number" placeholder="e.g. 3" {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
@@ -485,12 +445,7 @@ export default function SubmitComp() {
                   <FormItem className="col-span-full">
                     <FormLabel>Landlord Work Description</FormLabel>
                     <FormControl>
-                      <Textarea
-                        placeholder="Describe any build-out or improvements provided by landlord..."
-                        rows={3}
-                        data-testid="input-landlord-work"
-                        {...field}
-                      />
+                      <Textarea placeholder="Describe any build-out or improvements provided by landlord..." rows={3} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -498,7 +453,7 @@ export default function SubmitComp() {
               </CardContent>
             </Card>
 
-            {/* Section: Notes */}
+            {/* Notes */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-display">Additional Notes</CardTitle>
@@ -508,12 +463,7 @@ export default function SubmitComp() {
                   <FormItem>
                     <FormLabel>Notes</FormLabel>
                     <FormControl>
-                      <Textarea
-                        placeholder="Any additional context, deal structure details, or comments..."
-                        rows={4}
-                        data-testid="input-notes"
-                        {...field}
-                      />
+                      <Textarea placeholder="Any additional context, deal structure details, or comments..." rows={4} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -521,22 +471,14 @@ export default function SubmitComp() {
               </CardContent>
             </Card>
 
-            {/* Submit */}
             <div className="flex items-center justify-end gap-3 pb-6">
               <Button type="button" variant="outline" onClick={() => navigate("/")} data-testid="btn-cancel">
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                disabled={submitMutation.isPending}
-                className="min-w-[140px]"
-                data-testid="btn-submit-comp"
-              >
+              <Button type="submit" disabled={submitMutation.isPending} className="min-w-[140px]" data-testid="btn-submit-comp">
                 {submitMutation.isPending ? (
                   <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Submitting...</>
-                ) : (
-                  "Submit Comp"
-                )}
+                ) : "Submit Comp"}
               </Button>
             </div>
           </form>

@@ -6,9 +6,6 @@ import { insertLeaseCompSchema } from '@shared/schema';
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { z } from "zod";
-
-const SUBMIT_PASSWORD = process.env.SUBMIT_PASSWORD || "gmre2025";
 
 // multer for file uploads
 const upload = multer({
@@ -48,14 +45,10 @@ export async function registerRoutes(
     }
   });
 
-  // POST create single comp (password protected)
+  // POST create single comp
   app.post("/api/comps", async (req: Request, res: Response) => {
     try {
-      const { submitPassword, ...body } = req.body;
-      if (submitPassword !== SUBMIT_PASSWORD) {
-        return res.status(401).json({ error: "Invalid submission password" });
-      }
-      const parsed = insertLeaseCompSchema.safeParse(body);
+      const parsed = insertLeaseCompSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ error: "Validation failed", details: parsed.error.flatten() });
       }
@@ -66,13 +59,10 @@ export async function registerRoutes(
     }
   });
 
-  // POST bulk create comps (array of comps, same password)
+  // POST bulk create comps
   app.post("/api/comps/bulk", async (req: Request, res: Response) => {
     try {
-      const { submitPassword, comps } = req.body;
-      if (submitPassword !== SUBMIT_PASSWORD) {
-        return res.status(401).json({ error: "Invalid submission password" });
-      }
+      const { comps } = req.body;
       if (!Array.isArray(comps) || comps.length === 0) {
         return res.status(400).json({ error: "comps must be a non-empty array" });
       }
@@ -103,13 +93,9 @@ export async function registerRoutes(
     }
   });
 
-  // DELETE comp (password protected)
+  // DELETE comp
   app.delete("/api/comps/:id", async (req: Request, res: Response) => {
     try {
-      const { password } = req.body;
-      if (password !== SUBMIT_PASSWORD) {
-        return res.status(401).json({ error: "Invalid password" });
-      }
       await storage.deleteComp(parseInt(req.params.id));
       res.json({ success: true });
     } catch {
@@ -121,12 +107,6 @@ export async function registerRoutes(
   app.post("/api/extract", upload.single("document"), async (req: Request, res: Response) => {
     if (!req.file) {
       return res.status(400).json({ error: "No file uploaded" });
-    }
-
-    const { submitPassword } = req.body;
-    if (submitPassword !== SUBMIT_PASSWORD) {
-      fs.unlinkSync(req.file.path);
-      return res.status(401).json({ error: "Invalid password" });
     }
 
     try {

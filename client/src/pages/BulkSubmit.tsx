@@ -15,7 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { PROPERTY_TYPES, PROPERTY_CLASSES, LEASE_TYPES } from "@shared/schema";
 import { z } from "zod";
 import {
-  PlusCircle, Trash2, Loader2, Lock, ChevronDown, ChevronUp,
+  PlusCircle, Trash2, Loader2, ChevronDown, ChevronUp,
   CheckCircle2, AlertCircle, Copy, Layers
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -41,7 +41,6 @@ const bulkCompRowSchema = z.object({
 
 const bulkFormSchema = z.object({
   // Shared property fields (apply to all comps)
-  submitPassword: z.string().min(1, "Password required"),
   submittedBy: z.string().optional(),
   propertyName: z.string().min(1, "Required"),
   propertyAddress: z.string().min(1, "Required"),
@@ -82,7 +81,7 @@ export default function BulkSubmit() {
   const form = useForm<BulkFormValues>({
     resolver: zodResolver(bulkFormSchema),
     defaultValues: {
-      submitPassword: "", submittedBy: "",
+      submittedBy: "",
       propertyName: "", propertyAddress: "", city: "Fayetteville", state: "NC", zipCode: "",
       propertyType: "", propertyClass: "",
       comps: [{ ...EMPTY_ROW }],
@@ -108,14 +107,14 @@ export default function BulkSubmit() {
 
   const bulkMutation = useMutation({
     mutationFn: async (data: BulkFormValues) => {
-      const { submitPassword, submittedBy, comps, ...sharedProperty } = data;
+      const { submittedBy, comps, ...sharedProperty } = data;
       // Merge shared property fields into every comp row
       const merged = comps.map(row => ({
         ...sharedProperty,
         ...row,
         submittedBy: submittedBy || undefined,
       }));
-      const res = await apiRequest("POST", "/api/comps/bulk", { submitPassword, comps: merged });
+      const res = await apiRequest("POST", "/api/comps/bulk", { comps: merged });
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.error || "Bulk submission failed");
@@ -166,24 +165,12 @@ export default function BulkSubmit() {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
 
-            {/* Agent access */}
+            {/* Submitted by */}
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm flex items-center gap-2 font-display">
-                  <Lock className="h-4 w-4 text-primary" />
-                  Agent Access
-                </CardTitle>
+                <CardTitle className="text-sm font-display">Submitted By</CardTitle>
               </CardHeader>
-              <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <FormField control={form.control} name="submitPassword" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Submission Password *</FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder="Team password" data-testid="bulk-input-password" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
+              <CardContent>
                 <FormField control={form.control} name="submittedBy" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Your Name (optional)</FormLabel>
