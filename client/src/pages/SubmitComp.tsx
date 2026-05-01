@@ -41,6 +41,7 @@ export default function SubmitComp() {
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractedFileName, setExtractedFileName] = useState<string | null>(null);
   const [extractError, setExtractError] = useState<string | null>(null);
+  const [formKey, setFormKey] = useState(0);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -97,7 +98,7 @@ export default function SubmitComp() {
       const num = (v: unknown) => (v != null && v !== "" ? v : "");
 
       const current = form.getValues();
-      form.reset({
+      const resetValues = {
         ...current,
         propertyName:     ex.propertyName    ?? current.propertyName,
         propertyAddress:  ex.propertyAddress ?? current.propertyAddress,
@@ -128,7 +129,15 @@ export default function SubmitComp() {
         freeRentMonths:   num(ex.freeRentMonths),
         escalationRate:   num(ex.escalationRate),
         parkingRatio:     num(ex.parkingRatio),
-      });
+      };
+
+      // Store the values we want, then bump formKey to remount the entire
+      // form — this is the most reliable way to force shadcn Select (Radix)
+      // controlled components to reflect new values.
+      form.reset(resetValues);
+      setFormKey(k => k + 1);
+      // Re-apply values after remount so the new form instance has them
+      setTimeout(() => form.reset(resetValues), 10);
 
       toast({
         title: "Document parsed",
@@ -158,7 +167,7 @@ export default function SubmitComp() {
           </p>
         </div>
 
-        <Form {...form}>
+        <Form key={formKey} {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
 
             {/* Agent name */}
