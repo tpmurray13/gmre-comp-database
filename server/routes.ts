@@ -6,13 +6,14 @@ import { insertLeaseCompSchema } from '@shared/schema';
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { z } from "zod";
 
 const SUBMIT_PASSWORD = process.env.SUBMIT_PASSWORD || "gmre2025";
 
-// multer for file uploads — store in /tmp
+// multer for file uploads
 const upload = multer({
   dest: "/tmp/gmre-uploads/",
-  limits: { fileSize: 20 * 1024 * 1024 }, // 20MB
+  limits: { fileSize: 20 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     const allowed = [".pdf", ".docx", ".doc", ".txt"];
     const ext = path.extname(file.originalname).toLowerCase();
@@ -30,7 +31,7 @@ export async function registerRoutes(
     try {
       const comps = await storage.getAllComps();
       res.json(comps);
-    } catch (err) {
+    } catch {
       res.status(500).json({ error: "Failed to fetch comps" });
     }
   });
@@ -47,7 +48,7 @@ export async function registerRoutes(
     }
   });
 
-  // POST create comp (password protected)
+  // POST create single comp (password protected)
   app.post("/api/comps", async (req: Request, res: Response) => {
     try {
       const { submitPassword, ...body } = req.body;
@@ -60,8 +61,45 @@ export async function registerRoutes(
       }
       const comp = await storage.createComp(parsed.data);
       res.status(201).json(comp);
-    } catch (err) {
+    } catch {
       res.status(500).json({ error: "Failed to create comp" });
+    }
+  });
+
+  // POST bulk create comps (array of comps, same password)
+  app.post("/api/comps/bulk", async (req: Request, res: Response) => {
+    try {
+      const { submitPassword, comps } = req.body;
+      if (submitPassword !== SUBMIT_PASSWORD) {
+        return res.status(401).json({ error: "Invalid submission password" });
+      }
+      if (!Array.isArray(comps) || comps.length === 0) {
+        return res.status(400).json({ error: "comps must be a non-empty array" });
+      }
+      if (comps.length > 50) {
+        return res.status(400).json({ error: "Maximum 50 comps per bulk submission" });
+      }
+
+      const results: { index: number; success: boolean; id?: number; error?: string }[] = [];
+      for (let i = 0; i < comps.length; i++) {
+        const parsed = insertLeaseCompSchema.safeParse(comps[i]);
+        if (!parsed.success) {
+          results.push({ index: i, success: false, error: parsed.error.flatten().fieldErrors as unknown as string });
+        } else {
+          try {
+            const created = await storage.createComp(parsed.data);
+            results.push({ index: i, success: true, id: created.id });
+          } catch {
+            results.push({ index: i, success: false, error: "Database error" });
+          }
+        }
+      }
+
+      const succeeded = results.filter(r => r.success).length;
+      const failed = results.filter(r => !r.success).length;
+      res.status(201).json({ succeeded, failed, results });
+    } catch {
+      res.status(500).json({ error: "Bulk submission failed" });
     }
   });
 
@@ -101,7 +139,6 @@ export async function registerRoutes(
       if (ext === ".txt") {
         fileText = fs.readFileSync(req.file.path, "utf-8").slice(0, 8000);
       } else if (ext === ".pdf") {
-        // Use pdf-parse if available, otherwise read raw
         try {
           const pdfParse = (await import("pdf-parse")).default;
           const buf = fs.readFileSync(req.file.path);

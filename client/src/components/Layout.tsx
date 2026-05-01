@@ -1,17 +1,27 @@
 import { Link, useLocation } from "wouter";
 import { useTheme } from "@/components/ThemeProvider";
-import { Sun, Moon, BarChart2, PlusCircle, Building2 } from "lucide-react";
+import { Sun, Moon, BarChart2, PlusCircle, Building2, Layers, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { theme, toggle } = useTheme();
   const [location] = useLocation();
+
+  const isSubmitActive = location === "/submit" || location === "/bulk";
 
   return (
     <div className="min-h-dvh flex flex-col bg-background">
       {/* Top nav */}
       <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
+
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 shrink-0">
             <svg
@@ -42,17 +52,55 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 <span className="hidden sm:inline">Dashboard</span>
               </Button>
             </Link>
-            <Link href="/submit">
-              <Button
-                variant={location === "/submit" ? "secondary" : "ghost"}
-                size="sm"
-                className="gap-1.5"
-                data-testid="nav-submit"
-              >
-                <PlusCircle className="h-4 w-4" />
-                <span className="hidden sm:inline">Submit Comp</span>
-              </Button>
-            </Link>
+
+            {/* Submit split-button */}
+            <div className="flex items-center">
+              <Link href="/submit">
+                <Button
+                  variant={location === "/submit" ? "secondary" : "ghost"}
+                  size="sm"
+                  className="gap-1.5 rounded-r-none border-r border-border/50"
+                  data-testid="nav-submit"
+                >
+                  <PlusCircle className="h-4 w-4" />
+                  <span className="hidden sm:inline">Submit Comp</span>
+                </Button>
+              </Link>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant={location === "/bulk" ? "secondary" : "ghost"}
+                    size="sm"
+                    className="rounded-l-none px-2"
+                    data-testid="nav-submit-dropdown"
+                    aria-label="More submission options"
+                  >
+                    <ChevronDown className="h-3.5 w-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52">
+                  <DropdownMenuItem asChild>
+                    <Link href="/submit" className="flex items-center gap-2 cursor-pointer">
+                      <PlusCircle className="h-4 w-4" />
+                      <div>
+                        <div className="text-sm font-medium">Single Comp</div>
+                        <div className="text-xs text-muted-foreground">One lease with AI upload</div>
+                      </div>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/bulk" className="flex items-center gap-2 cursor-pointer">
+                      <Layers className="h-4 w-4" />
+                      <div>
+                        <div className="text-sm font-medium">Bulk Submit</div>
+                        <div className="text-xs text-muted-foreground">Multiple leases, one property</div>
+                      </div>
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </nav>
 
           {/* Theme toggle */}
