@@ -92,45 +92,43 @@ export default function SubmitComp() {
       const ex = json.extracted;
       setExtractedFileName(json.fileName);
 
-      const fieldMap: Partial<Record<keyof FormValues, unknown>> = {
-        propertyName: ex.propertyName,
-        propertyAddress: ex.propertyAddress,
-        city: ex.city,
-        state: ex.state,
-        zipCode: ex.zipCode,
-        propertyType: ex.propertyType,
-        propertyClass: ex.propertyClass,
-        buildingSize: ex.buildingSize,
-        yearBuilt: ex.yearBuilt,
-        tenantName: ex.tenantName,
-        landlordName: ex.landlordName,
-        leasedSF: ex.leasedSF,
-        leaseType: ex.leaseType,
-        baseRent: ex.baseRent,
-        effectiveRent: ex.effectiveRent,
-        leaseTermMonths: ex.leaseTermMonths,
-        leaseStartDate: ex.leaseStartDate,
-        leaseEndDate: ex.leaseEndDate,
-        tiAllowance: ex.tiAllowance,
-        freeRentMonths: ex.freeRentMonths,
-        landlordWork: ex.landlordWork,
-        escalationRate: ex.escalationRate,
-        suiteNumber: ex.suiteNumber,
-        parkingRatio: ex.parkingRatio,
-        notes: ex.notes,
-        sourceDocument: json.fileName,
-      };
+      // Helper: convert numbers to strings for text inputs, keep strings for selects
+      const str = (v: unknown) => (v != null && v !== "" ? String(v) : undefined);
+      const num = (v: unknown) => (v != null && v !== "" ? v : "");
 
-      // Use reset to set all extracted values at once — most reliable way to
-      // populate both text inputs AND controlled Select components in RHF
       const current = form.getValues();
-      const merged: FormValues = { ...current };
-      Object.entries(fieldMap).forEach(([key, value]) => {
-        if (value != null && value !== "") {
-          (merged as Record<string, unknown>)[key] = value;
-        }
+      form.reset({
+        ...current,
+        propertyName:     ex.propertyName    ?? current.propertyName,
+        propertyAddress:  ex.propertyAddress ?? current.propertyAddress,
+        city:             ex.city            ?? current.city,
+        state:            ex.state           ?? current.state,
+        zipCode:          str(ex.zipCode)    ?? current.zipCode,
+        // Select fields — must be exact string match to option values
+        propertyType:     ex.propertyType    ?? current.propertyType,
+        propertyClass:    ex.propertyClass   ?? current.propertyClass,
+        leaseType:        ex.leaseType       ?? current.leaseType,
+        // Text fields
+        tenantName:       ex.tenantName      ?? current.tenantName,
+        landlordName:     ex.landlordName    ?? current.landlordName,
+        suiteNumber:      str(ex.suiteNumber)     ?? current.suiteNumber,
+        landlordWork:     ex.landlordWork    ?? current.landlordWork,
+        leaseStartDate:   ex.leaseStartDate  ?? current.leaseStartDate,
+        leaseEndDate:     ex.leaseEndDate    ?? current.leaseEndDate,
+        notes:            ex.notes           ?? current.notes,
+        sourceDocument:   json.fileName,
+        // Numeric fields — pass as numbers (coerce schema handles them)
+        leasedSF:         num(ex.leasedSF),
+        baseRent:         num(ex.baseRent),
+        leaseTermMonths:  num(ex.leaseTermMonths),
+        buildingSize:     num(ex.buildingSize),
+        yearBuilt:        num(ex.yearBuilt),
+        effectiveRent:    num(ex.effectiveRent),
+        tiAllowance:      num(ex.tiAllowance),
+        freeRentMonths:   num(ex.freeRentMonths),
+        escalationRate:   num(ex.escalationRate),
+        parkingRatio:     num(ex.parkingRatio),
       });
-      form.reset(merged);
 
       toast({
         title: "Document parsed",
